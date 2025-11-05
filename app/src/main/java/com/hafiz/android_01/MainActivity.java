@@ -3,6 +3,10 @@ package com.hafiz.android_01;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,12 +23,26 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.hafiz.android_01.ui.BatteryReceiver;
+import com.hafiz.android_01.ui.NetworkChangeReceiver;
+import com.hafiz.android_01.ui.ProductAddActivity;
+import com.hafiz.android_01.ui.ProductListActivity;
 
 public class MainActivity extends AppCompatActivity {
 
     EditText etUserName, etPassword;
     Button btnLogin, btnSignup;
     FloatingActionButton fab;
+
+    NetworkChangeReceiver receiver = new NetworkChangeReceiver();
+    BatteryReceiver batteryReceiver = new BatteryReceiver();
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
+        unregisterReceiver(batteryReceiver);
+    }
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -38,6 +56,18 @@ public class MainActivity extends AppCompatActivity {
         btnSignup = findViewById(R.id.btnSignUp);
         fab = findViewById(R.id.btnTree);
 
+        //for receiver
+        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(receiver,filter);
+
+        //battery
+        IntentFilter btrFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        registerReceiver(batteryReceiver,btrFilter);
+
+        Intent intent = new Intent(this, MyService.class);
+        startService(intent);
+
+
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("SetTextI18n")
             @Override
@@ -49,6 +79,24 @@ public class MainActivity extends AppCompatActivity {
                 if(email.isEmpty() || password.isEmpty()){
                     Toast.makeText(MainActivity.this, "Please fill all fields", Toast.LENGTH_SHORT).show();
                 }else if(email.equals("admin") && password.equals("1234")){
+
+                    SharedPreferences sharedPreferences = getSharedPreferences("LoginReff", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+
+                    editor.putString("username", "Hafiz");
+                    editor.putInt("password", 1234);
+                    editor.putBoolean("isLoggedIn", true);
+
+                    editor.apply();
+
+                    btnLogin.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent = new Intent( MainActivity.this, ProductAddActivity.class);
+                            startActivity(intent);
+
+                        }
+                    });
                     Toast.makeText(MainActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
                 }else {
 //                    Toast.makeText(MainActivity.this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
@@ -93,18 +141,13 @@ public class MainActivity extends AppCompatActivity {
         btnSignup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+/*
                 Toast.makeText(MainActivity.this, "SignUp Clicked", Toast.LENGTH_LONG).show();
-                Intent intent = new Intent( MainActivity.this, SignUpActivity.class);
+*/
+                Intent intent = new Intent( MainActivity.this, ProductListActivity.class);
                 startActivity(intent);
             }
         });
 
-
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
     }
 }
